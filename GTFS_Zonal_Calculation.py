@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 20 09:13:18 2021
+Created in Dec 2021
 
-@author: santi
+@author: santi & yeying
 """
 
 import streamlit as st
@@ -18,7 +18,7 @@ st.sidebar.header('Drag and drop files here')
 uploaded_files = st.sidebar.file_uploader('Upload routes.txt, trips.txt, stop_times.txt and shapes.txt', accept_multiple_files=True, type=['txt'])
 
 # Get the polygons
-polys = gpd.read_file("https://raw.githubusercontent.com/yeying123/GTFS_Zonal_Calculation/Data/UZA_Zone.geojson")
+polys = gpd.read_file("Data/UZA_Zone.geojson")
 polys = polys.to_crs(epsg=4326)
 
  # Upload files from GTFS
@@ -140,7 +140,7 @@ if uploaded_files != []:
         assigned_patterns.drop('index', inplace=True, axis=1)
         
     # Intersection geometries I need
-    intersection1 = pd.merge(intersection, polys[['NAME']], left_on='poly_index', right_on=polys.index, how='left')
+    intersection1 = pd.merge(intersection, polys[['NAME10']], left_on='poly_index', right_on=polys.index, how='left')
     intersection1 = gpd.GeoDataFrame(data = intersection1.drop(['index','poly_index','geometry'], axis=1), geometry = intersection1.geometry)
     
     # Merge all variables
@@ -156,19 +156,19 @@ if uploaded_files != []:
         assigned_patterns2.loc[assigned_patterns2.route_short_name==r, 'pattern'] = pattern_list
     
     # Merge dataframe with the real patterns and df with the municipalities
-    df1 = assigned_patterns1[['route_short_name', 'aux_pattern', 'shape_id', 'NAME', 'km_in_poly','geometry']]
+    df1 = assigned_patterns1[['route_short_name', 'aux_pattern', 'shape_id', 'NAME10', 'km_in_poly','geometry']]
     df2 = assigned_patterns2[['route_short_name', 'aux_pattern', 'pattern']]
     
     # This is what I need to show the table
     # I have the fields to filter by route and county
     try_this = pd.merge(df1, df2, how='left')
-    table = try_this.pivot_table('km_in_poly', index=['route_short_name', 'pattern', 'NAME'], aggfunc='sum').reset_index()
-    table.rename(columns = dict(route_short_name = 'Route', NAME = 'County', pattern = 'Pattern', km_in_poly = 'Kilometers'), inplace=True)
+    table = try_this.pivot_table('km_in_poly', index=['route_short_name', 'pattern', 'NAME10'], aggfunc='sum').reset_index()
+    table.rename(columns = dict(route_short_name = 'Route', pattern = 'Pattern', km_in_poly = 'Kilometers',NAME10= 'UAZ'), inplace=True)
     
     # This is what I need to draw the map
     # I have the fields to filter by route and county
-    gdf_intersections = gpd.GeoDataFrame(data = assigned_patterns1[['route_short_name', 'NAME']], geometry = assigned_patterns1.geometry)
-    gdf_intersections.rename(columns = dict(route_short_name = 'Route', NAME = 'County'), inplace=True)
+    gdf_intersections = gpd.GeoDataFrame(data = assigned_patterns1[['route_short_name', 'NAME10']], geometry = assigned_patterns1.geometry)
+    gdf_intersections.rename(columns = dict(route_short_name = 'Route', NAME10 = 'UAZ'), inplace=True)
     
     # -------------------------------------------------------------------------------
     # --------------------------- APP -----------------------------------------------
@@ -179,7 +179,7 @@ if uploaded_files != []:
     col1, col2, col3= st.beta_columns((1, 2 ,3))
         
     # Select filters
-    poly_names_list = list(gdf_intersections['County'].unique())
+    poly_names_list = list(gdf_intersections['UAZ'].unique())
     lines_names_list = list(gdf_intersections['Route'].unique())
     
     poly_names_list.sort()
@@ -187,10 +187,10 @@ if uploaded_files != []:
     
     with col1:
         st.subheader('Filters')
-        filter_polys = st.multiselect('Counties', poly_names_list)
+        filter_polys = st.multiselect('UAZs', poly_names_list)
         filter_routes = st.multiselect('Routes', lines_names_list)
         st.subheader('Pivot dimensions')
-        group_by = st.multiselect('Group by', ['County', 'Route', 'Pattern'], default = ['County', 'Route', 'Pattern'])
+        group_by = st.multiselect('Group by', ['UAZ', 'Route', 'Pattern'], default = ['UAZ', 'Route', 'Pattern'])
         
     if filter_polys == []:
         filter_polys = poly_names_list
@@ -203,7 +203,7 @@ if uploaded_files != []:
     # Filter data
     table_poly = table.loc[
         (table['Route'].isin(filter_routes))&
-        (table['County'].isin(filter_polys))
+        (table['UAZ'].isin(filter_polys))
         ]
     table_poly = table_poly.pivot_table(['Kilometers'], index=group_by, aggfunc='sum').reset_index()
     table_poly['Kilometers'] = table_poly['Kilometers'].apply(lambda x: str(round(x, 2)))     
@@ -211,23 +211,23 @@ if uploaded_files != []:
     # Filter polygons that passed the filter
     # Merge the intersection with the number of trips per shape
     intersection_aux = pd.merge(trips, intersection1, how='right')
-    intersection2 = intersection_aux.drop_duplicates(subset=['route_short_name', 'NAME']).loc[:,['route_short_name', 'NAME']].reset_index()
+    intersection2 = intersection_aux.drop_duplicates(subset=['route_short_name', 'NAME10']).loc[:,['route_short_name', 'NAME10']].reset_index()
     
     # Add polygons geometries
-    intersection2 = pd.merge(intersection2, polys, left_on='NAME', right_on='NAME', how='left')
+    intersection2 = pd.merge(intersection2, polys, left_on='NAME10', right_on='NAME10', how='left')
     
     # This is what I need to select the polygons that passed the route and county filters
-    route_polys = gpd.GeoDataFrame(data=intersection2[['route_short_name', 'NAME']], geometry=intersection2.geometry)
+    route_polys = gpd.GeoDataFrame(data=intersection2[['route_short_name', 'NAME10']], geometry=intersection2.geometry)
     
     filtered = route_polys.loc[
-        (route_polys['NAME'].isin(filter_polys))&
+        (route_polys['NAME10'].isin(filter_polys))&
         (route_polys.route_short_name.isin(filter_routes))
         ]
         
     # Filter line intersections that passed the filters
     line_intersections = gdf_intersections.loc[
         (gdf_intersections['Route'].isin(filter_routes))&
-        (gdf_intersections['County'].isin(filter_polys))
+        (gdf_intersections['UAZ'].isin(filter_polys))
         ].__geo_interface__
     
     # Filter the shapes that passed the routes filters

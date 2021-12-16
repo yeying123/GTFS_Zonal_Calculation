@@ -18,7 +18,7 @@ st.sidebar.header('Drag and drop files here')
 uploaded_files = st.sidebar.file_uploader('Upload routes.txt, trips.txt, stop_times.txt and shapes.txt', accept_multiple_files=True, type=['txt'])
 
 # Get the polygons
-polys = gpd.read_file("https://raw.githubusercontent.com/Bondify/km_per_polygon/main/UZA_Zone.geojson")
+polys = gpd.read_file("https://raw.githubusercontent.com/yeying123/GTFS_Zonal_Calculation/Data/UZA_Zone.geojson")
 polys = polys.to_crs(epsg=4326)
 
  # Upload files from GTFS

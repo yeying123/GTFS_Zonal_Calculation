@@ -211,7 +211,7 @@ if uploaded_files != []:
         (table['Route'].isin(filter_routes))
         #(table['UZA'].isin(filter_polys))
         ]
-    table_poly = table_poly.pivot_table(values=['Miles_within','Total_length','%UZA'], index=group_by, aggfunc='sum').reset_index()
+    table_poly = table_poly.pivot_table(values=['Miles_within','Total_length','%UZA'], index=group_by, aggfunc='mean').reset_index()
     table_poly['Miles_within'] = table_poly['Miles_within'].apply(lambda x: str(round(x, 2)))
     table_poly['Total_length'] = table_poly['Total_length'].apply(lambda x: str(round(x, 2)))
     table_poly['%UZA'] = table_poly['%UZA'].apply(lambda x: str(round(x, 2)))

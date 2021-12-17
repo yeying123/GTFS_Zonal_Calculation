@@ -54,7 +54,10 @@ if uploaded_files != []:
     intersection_geo = [s.intersection(p) for s in shapes.geometry for p in polys.geometry]
     intersection = gpd.GeoDataFrame(geometry=intersection_geo)
     intersection.crs = {'init':'epsg:4326'}
-    
+
+    # getting shape for mapping only
+    whole_route_geo=gpd.GeoDataFrame(shapes,geometry=shapes.geometry)
+    whole_route_geo.crs = {'init':'epsg:4326'}
     
     # Get the shape_ids repeated as many times as polygons there are
     shape_ids = [[s]*len(polys) for s in shapes.shape_id]
@@ -66,7 +69,9 @@ if uploaded_files != []:
     intersection['shape_id'] = list(itertools.chain.from_iterable(shape_ids))
     # intersection['shape_id']  = intersection['shape_id']  + 'a' #this is only for keplergl to show it right
     intersection['poly_index'] = list(itertools.chain.from_iterable(poly_index))
+    intersection_whole=intersection # only use for mapping purpose
     
+
     # Keep only the ones that intersected
     intersection = intersection.loc[~intersection.geometry.is_empty].reset_index()
     
@@ -99,6 +104,9 @@ if uploaded_files != []:
     patterns = pd.merge(trips_per_shape, shapes.drop('geometry', axis=1), how='left').sort_values(by=['route_id', 'ntrips', 'length'], ascending=False)
     patterns = pd.merge(patterns, stops_per_shape, how='left')
     patterns = pd.merge(routes[['route_id', 'route_short_name']], patterns, how='left')
+
+    intersection_whole=pd.merge(trips_per_shape,intersection_whole.drop('geometry',axis=1), how='right') # for mapping purpose only
+    intersection_whole=pd.merge(routes[['route_id', 'route_short_name']], intersection_whole, how='left')  # for mapping purpose only, with route id, route short name, shape id
     
     # Manage directions
     direction_0 = patterns.loc[patterns.direction_id == 0].reset_index().drop('index', axis=1)
@@ -143,11 +151,17 @@ if uploaded_files != []:
         assigned_patterns = assigned_patterns.append(longer)
         assigned_patterns = assigned_patterns.append(shorter)
         assigned_patterns.drop('index', inplace=True, axis=1)
-        
+
+
     # Intersection geometries I need
     intersection1 = pd.merge(intersection, polys[['Label']], left_on='poly_index', right_on=polys.index, how='left')
     intersection1 = gpd.GeoDataFrame(data = intersection1.drop(['index','poly_index','geometry'], axis=1), geometry = intersection1.geometry)
-    
+
+    # Create geometry for mapping use only - keep the whole route
+    whole_route = pd.merge(intersection_whole, whole_route_geo[['shape_id','geometry']],how='left')
+    whole_route = gpd.GeoDataFrame(data = whole_route, geometry = whole_route.geometry)
+    whole_route.rename(columns = dict(route_short_name = 'Route'), inplace=True)
+
     # Merge all variables
     assigned_patterns1 = pd.merge(assigned_patterns[['route_short_name', 'shape_id','aux_pattern', 'ntrips','length']], intersection1, how='right')
     assigned_patterns2 = assigned_patterns1.pivot_table(['ntrips', 'miles_in_poly'], index = ['route_short_name', 'aux_pattern'], aggfunc='sum').reset_index().sort_values(by = ['route_short_name','ntrips'], ascending=False)
@@ -175,7 +189,7 @@ if uploaded_files != []:
     # I have the fields to filter by route and county
     gdf_intersections = gpd.GeoDataFrame(data = assigned_patterns1[['route_short_name', 'Label','length']], geometry = assigned_patterns1.geometry)
     gdf_intersections.rename(columns = dict(route_short_name = 'Route', Label = 'UZA'), inplace=True)
-    
+
     # -------------------------------------------------------------------------------
     # --------------------------- APP -----------------------------------------------
     # -------------------------------------------------------------------------------
@@ -214,12 +228,9 @@ if uploaded_files != []:
     table_poly = table_poly.pivot_table(values=['Miles_within','Total_length','%UZA'], index=group_by, aggfunc='mean').reset_index()
     table_poly['Miles_within'] = table_poly['Miles_within'].apply(lambda x: str(round(x, 2)))
     table_poly['Total_length'] = table_poly['Total_length'].apply(lambda x: str(round(x, 2)))
-
-    #format_dict = {'%UZA': '{:.2%}'}
-    #table_poly['%UZA'] = '{:.1%}'.format('{}'.format(table_poly['%UZA'].apply(lambda x: float())))
-    #'{:15}'.format('{}'.format([1,2,3]))
     table_poly['%UZA'] = table_poly['%UZA'].apply(lambda x: str(round(x, 2)))
-
+    
+    
 
     # Filter polygons that passed the filter
     # Merge the intersection with the number of trips per shape
@@ -240,6 +251,12 @@ if uploaded_files != []:
     # Filter line intersections that passed the filters
     line_intersections = gdf_intersections.loc[
         (gdf_intersections['Route'].isin(filter_routes))
+        #(gdf_intersections['UZA'].isin(filter_polys))
+        ].__geo_interface__
+
+    # Filter line intersections that passed the filters
+    line_intersections_new = whole_route.loc[
+        (whole_route['Route'].isin(filter_routes))
         #(gdf_intersections['UZA'].isin(filter_polys))
         ].__geo_interface__
     
@@ -316,7 +333,7 @@ if uploaded_files != []:
                     ),
                 pdk.Layer(
                     "GeoJsonLayer", 
-                    data=line_intersections, 
+                    data=line_intersections_new, 
                     # get_fill_color=[231,51,55],
                     get_line_color = [200,51,55],
                     opacity=1,

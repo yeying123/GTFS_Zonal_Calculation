@@ -251,8 +251,7 @@ if uploaded_files != []:
     avg_lat = polys.geometry.centroid.y.mean()    
 
     with col2:
-        st.subheader('Breakdown Table')
-        #st.subheader('Total Miles = {}'.format(round(table_poly['Miles_within'].map(float).sum(),1)))
+        st.subheader('Average Percentage within UZA = {}'.format(round(table_poly['%within'].map(float).mean(),1)))
                     # Download data
         def get_table_download_link(df):
             """Generates a link allowing the data in a given panda dataframe to be downloaded

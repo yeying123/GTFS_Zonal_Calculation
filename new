@@ -1,0 +1,33 @@
+    
+    '''
+    # Calculate percentage within
+    #intersection['percentage_within']=''
+
+    #for t in range(len(intersection)):
+       # id=intersection['shape_id'][t]
+        #id=shapes['shape_id'][t]
+       # total_length=shapes.loc[shapes.shape_id==id,'length']
+       # intersect_length=intersection.loc[intersection.shape_id==id,'miles_in_poly']
+       # intersection['percentage_within']=intersect_length/total_length
+    '''
+
+
+
+
+
+    pdk.Layer(
+                    "GeoJsonLayer", 
+                    data=line_intersections, 
+                    # get_fill_color=[231,51,55],
+                    get_line_color = [200,51,55],
+                    opacity=1,
+                    pickable=False,
+                    extruded=False,
+                    converage=1,
+                    filled= True,
+                    line_width_scale= 20,
+                    line_width_min_pixels= 2,
+                    get_line_width = 1,
+                    get_radius = 100,
+                    get_elevation= 30             
+                    )

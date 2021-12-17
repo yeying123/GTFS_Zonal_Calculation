@@ -162,7 +162,7 @@ if uploaded_files != []:
     
     # Merge dataframe with the real patterns and df with the municipalities
     df1 = assigned_patterns1[['route_short_name', 'aux_pattern', 'shape_id', 'Label', 'miles_in_poly','geometry','length']]
-    df1['%UZA']=df1['miles_in_poly']/df1['length']
+    df1['%UZA']=df1['miles_in_poly']/df1['length']*100
     df2 = assigned_patterns2[['route_short_name', 'aux_pattern', 'pattern']]
     
     # This is what I need to show the table
@@ -255,7 +255,7 @@ if uploaded_files != []:
     avg_lat = polys.geometry.centroid.y.mean()    
 
     with col2:
-        st.subheader('Average Percentage within UZA = {:.1%}'.format(table_poly['%UZA'].map(float).mean().round(decimals = 3)))
+        st.subheader('Average Percentage within UZA = {:.1%}'.format(table_poly['%UZA'].map(float).div(100).mean().round(decimals = 3)))
         #st.subheader('Average Percentage within UZA = {}'.format(round(table_poly['%UZA'].map(float).mean()),-2))
                     # Download data
         def get_table_download_link(df):

@@ -214,6 +214,10 @@ if uploaded_files != []:
     table_poly = table_poly.pivot_table(values=['Miles_within','Total_length','%UZA'], index=group_by, aggfunc='mean').reset_index()
     table_poly['Miles_within'] = table_poly['Miles_within'].apply(lambda x: str(round(x, 2)))
     table_poly['Total_length'] = table_poly['Total_length'].apply(lambda x: str(round(x, 2)))
+
+    #format_dict = {'%UZA': '{:.2%}'}
+    #table_poly['%UZA'] = '{:.1%}'.format('{}'.format(table_poly['%UZA'].apply(lambda x: float())))
+    #'{:15}'.format('{}'.format([1,2,3]))
     table_poly['%UZA'] = table_poly['%UZA'].apply(lambda x: str(round(x, 2)))
 
 
@@ -251,7 +255,8 @@ if uploaded_files != []:
     avg_lat = polys.geometry.centroid.y.mean()    
 
     with col2:
-        st.subheader('Average Percentage within UZA = {}'.format(table_poly['%within'].map(float).mean()))
+        st.subheader('Average Percentage within UZA = {:.1%}'.format(table_poly['%UZA'].map(float).mean().round(decimals = 3)))
+        #st.subheader('Average Percentage within UZA = {}'.format(round(table_poly['%UZA'].map(float).mean()),-2))
                     # Download data
         def get_table_download_link(df):
             """Generates a link allowing the data in a given panda dataframe to be downloaded
